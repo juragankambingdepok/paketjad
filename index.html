@@ -237,6 +237,10 @@
   <tbody id="tabelData"></tbody>
 </table>
 
+ <div style="text-align:center; margin:16px 0;">
+  <button id="btnMore" style="display:none; padding:10px 22px; border:none; border-radius:8px; background:#2c3e50; color:#fff; font-weight:600; cursor:pointer;">Tampilkan lebih banyak</button>
+</div>
+ 
 <button id="btnPengaturan" title="Pengaturan">⚙</button>
 <button id="btnScrollUp" class="btnScroll" title="Ke Atas">↑</button>
 <button id="btnScrollDown" class="btnScroll" title="Ke Bawah">↓</button>
@@ -353,53 +357,96 @@ function updateCountdown() {
 }
 
 // ================== MUAT DATA DASHBOARD ==================
+
+
+// ================== MUAT DATA DASHBOARD ==================
+var batasTampil = 50;
+var rowsSaatIni = [];
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+  });
+}
+
+function terapkanData(data) {
+  document.getElementById('total').innerText = data.total;
+  document.getElementById('posted').innerText = data.posted;
+  document.getElementById('pending').innerText = data.pending;
+  document.getElementById('error').innerText = data.error;
+  document.getElementById('successRate').innerText = data.successRate + '%';
+  document.getElementById('terjadwalHariIni').innerText = data.terjadwalHariIni != null ? data.terjadwalHariIni : 0;
+  document.getElementById('jadwalBerikutnya').innerText = data.jadwalBerikutnyaTeks;
+  document.getElementById('infoUpdate').innerText = 'Terakhir diperbarui: ' + data.waktuUpdate;
+
+  jadwalBerikutnyaTimestamp = data.jadwalBerikutnyaTimestamp || null;
+  updateCountdown();
+
+  dataTerakhir = data.rows || [];
+  if (sortKeyAktif) urutkanData(sortKeyAktif, false);
+  else renderTabel(dataTerakhir);
+}
+
 function muatData() {
+  if (document.hidden) return;   // jangan ambil data saat tab tidak dibuka
   fetch(WEB_APP_URL + '?format=json')
-    .then(function (r) { return r.json(); })
-    .then(function (data) {
-      document.getElementById('total').innerText = data.total;
-      document.getElementById('posted').innerText = data.posted;
-      document.getElementById('pending').innerText = data.pending;
-      document.getElementById('error').innerText = data.error;
-      document.getElementById('successRate').innerText = data.successRate + '%';
-      document.getElementById('terjadwalHariIni').innerText = data.terjadwalHariIni != null ? data.terjadwalHariIni : 0;
-      document.getElementById('jadwalBerikutnya').innerText = data.jadwalBerikutnyaTeks;
-      document.getElementById('infoUpdate').innerText = 'Terakhir diperbarui: ' + data.waktuUpdate;
-
-      jadwalBerikutnyaTimestamp = data.jadwalBerikutnyaTimestamp || null;
-      updateCountdown();
-
-      dataTerakhir = data.rows || [];
-      if (sortKeyAktif) {
-        urutkanData(sortKeyAktif, false);
-      } else {
-        renderTabel(dataTerakhir);
-      }
+    .then(function (r) { return r.text(); })
+    .then(function (txt) {
+      try { localStorage.setItem('dashCache', txt); } catch (e) {}
+      terapkanData(JSON.parse(txt));
     })
     .catch(function () {
       document.getElementById('infoUpdate').innerText = 'Gagal memuat data. Periksa URL Web App.';
     });
 }
 
+// Render sekali saja (bukan += di dalam loop), maksimal 'batasTampil' baris
 function renderTabel(rows) {
-  var tbody = document.getElementById('tabelData');
-  tbody.innerHTML = '';
-  rows.forEach(function (row) {
-    var kelas = row.status === 'Posted' ? 'status-posted' : (row.status.indexOf('Error') === 0 ? 'status-error' : 'status-pending');
-    var link = row.link ? '<a href="' + row.link + '" target="_blank">Lihat</a>' : '-';
-    tbody.innerHTML +=
+  rowsSaatIni = rows;
+  var tampil = rows.slice(0, batasTampil);
+  var html = [];
+  for (var i = 0; i < tampil.length; i++) {
+    var row = tampil[i];
+    var st = String(row.status || '');
+    var kelas = st === 'Posted' ? 'status-posted' : (st.indexOf('Error') === 0 ? 'status-error' : 'status-pending');
+    var link = row.link ? '<a href="' + esc(row.link) + '" target="_blank" rel="noopener">Lihat</a>' : '-';
+    html.push(
       '<tr>' +
-        '<td data-label="Judul">' + row.judul + '</td>' +
-        '<td data-label="Lokasi">' + row.lokasi + '</td>' +
-        '<td data-label="Jadwal">' + row.jadwal + '</td>' +
-        '<td data-label="Status" class="' + kelas + '">' + row.status + '</td>' +
+        '<td data-label="Judul">' + esc(row.judul) + '</td>' +
+        '<td data-label="Lokasi">' + esc(row.lokasi) + '</td>' +
+        '<td data-label="Jadwal">' + esc(row.jadwal) + '</td>' +
+        '<td data-label="Status" class="' + kelas + '">' + esc(st) + '</td>' +
         '<td data-label="Link">' + link + '</td>' +
-      '</tr>';
-  });
+      '</tr>'
+    );
+  }
+  document.getElementById('tabelData').innerHTML = html.join('');
+
+  var btn = document.getElementById('btnMore');
+  if (rows.length > batasTampil) {
+    btn.style.display = 'inline-block';
+    btn.innerText = 'Tampilkan lebih banyak (' + batasTampil + ' dari ' + rows.length + ')';
+  } else {
+    btn.style.display = 'none';
+  }
 }
 
+document.getElementById('btnMore').onclick = function () {
+  batasTampil += 50;
+  renderTabel(rowsSaatIni);
+};
+
+// Tampilkan data tersimpan dulu (instan), lalu perbarui dari server
+try {
+  var tersimpan = localStorage.getItem('dashCache');
+  if (tersimpan) terapkanData(JSON.parse(tersimpan));
+} catch (e) {}
+
 muatData();
-setInterval(muatData, 15000);
+setInterval(muatData, 60000);   // tiap 60 detik, bukan 15 detik
+document.addEventListener('visibilitychange', function () {
+  if (!document.hidden) muatData();   // segarkan saat tab dibuka kembali
+});
 
 // ================== SORTING TABEL ==================
 document.querySelectorAll('th[data-key]').forEach(function (th) {
