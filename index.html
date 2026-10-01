@@ -176,7 +176,62 @@
   .tabPanel button:hover { opacity:.88; }
 
   #pesanPanel { margin-top:12px; font-size:13px; text-align:center; font-weight:600; }
+.cariBox { position:relative; max-width:560px; margin:0 auto 8px; }
+.cariBox input {
+  width:100%; padding:12px 40px 12px 16px; font-size:15px;
+  border:1px solid #dcdfe3; border-radius:12px; background:#fff;
+  box-shadow:0 2px 8px rgba(0,0,0,.06);
+}
+.cariBox input:focus { outline:none; border-color:#3498db; box-shadow:0 0 0 3px rgba(52,152,219,.2); }
+#btnHapusCari {
+  position:absolute; right:8px; top:50%; transform:translateY(-50%);
+  border:none; background:none; font-size:16px; color:#7f8c8d; cursor:pointer; display:none;
+}
+#infoCari { text-align:center; font-size:13px; color:#7f8c8d; margin:0 0 18px; min-height:18px; }
+.judulTabel { margin:26px 0 10px; font-size:18px; color:#2c3e50; display:flex; align-items:center; gap:8px; }
+.badge { background:#2c3e50; color:#fff; font-size:12px; padding:3px 10px; border-radius:20px; font-weight:600; }
+.badgeHijau { background:#27ae60; }
+.btnLink { color:#2980b9; font-weight:600; text-decoration:none; }
+.btnLink:hover { text-decoration:underline; }
+.kosong { text-align:center; color:#95a5a6; padding:20px; }
+<div class="cariBox">
+  <input type="search" id="inputCari" placeholder="🔍 Cari judul, lokasi, jadwal, atau status..." autocomplete="off">
+  <button id="btnHapusCari" type="button" title="Hapus pencarian">✕</button>
+</div>
+<p id="infoCari"></p>
 
+<h3 class="judulTabel">⏳ Antrean Posting <span id="jmlBelum" class="badge">0</span></h3>
+<table>
+  <thead>
+    <tr>
+      <th data-key="judul">Judul <span class="arrow"></span></th>
+      <th data-key="lokasi">Lokasi <span class="arrow"></span></th>
+      <th data-key="jadwal">Jadwal <span class="arrow"></span></th>
+      <th data-key="status">Status <span class="arrow"></span></th>
+    </tr>
+  </thead>
+  <tbody id="tabelData"></tbody>
+</table>
+<div style="text-align:center; margin:16px 0;">
+  <button id="btnMore" class="btnMore"></button>
+</div>
+
+<h3 class="judulTabel">✅ Sudah Diposting <span id="jmlSudah" class="badge badgeHijau">0</span></h3>
+<table>
+  <thead>
+    <tr>
+      <th data-key="judul">Judul <span class="arrow"></span></th>
+      <th data-key="lokasi">Lokasi <span class="arrow"></span></th>
+      <th data-key="jadwal">Waktu Posting <span class="arrow"></span></th>
+      <th data-key="status">Status <span class="arrow"></span></th>
+      <th>Link</th>
+    </tr>
+  </thead>
+  <tbody id="tabelPosted"></tbody>
+</table>
+<div style="text-align:center; margin:16px 0;">
+  <button id="btnMoreSudah" class="btnMore"></button>
+</div>
   @media (max-width: 600px) {
     h1 { font-size:21px; }
     .logoHeader { width:44px; height:44px; }
@@ -224,18 +279,7 @@
   <div id="countdown">--:--:--</div>
 </div>
 
-<table>
-  <thead>
-    <tr>
-      <th data-key="judul">Judul <span class="arrow"></span></th>
-      <th data-key="lokasi">Lokasi <span class="arrow"></span></th>
-      <th data-key="jadwal">Jadwal <span class="arrow"></span></th>
-      <th data-key="status">Status <span class="arrow"></span></th>
-      <th data-key="link">Link <span class="arrow"></span></th>
-    </tr>
-  </thead>
-  <tbody id="tabelData"></tbody>
-</table>
+
 
  <div style="text-align:center; margin:16px 0;">
   <button id="btnMore" style="display:none; padding:10px 22px; border:none; border-radius:8px; background:#2c3e50; color:#fff; font-weight:600; cursor:pointer;">Tampilkan lebih banyak</button>
@@ -401,35 +445,6 @@ function muatData() {
 }
 
 // Render sekali saja (bukan += di dalam loop), maksimal 'batasTampil' baris
-function renderTabel(rows) {
-  rowsSaatIni = rows;
-  var tampil = rows.slice(0, batasTampil);
-  var html = [];
-  for (var i = 0; i < tampil.length; i++) {
-    var row = tampil[i];
-    var st = String(row.status || '');
-    var kelas = st === 'Posted' ? 'status-posted' : (st.indexOf('Error') === 0 ? 'status-error' : 'status-pending');
-    var link = row.link ? '<a href="' + esc(row.link) + '" target="_blank" rel="noopener">Lihat</a>' : '-';
-    html.push(
-      '<tr>' +
-        '<td data-label="Judul">' + esc(row.judul) + '</td>' +
-        '<td data-label="Lokasi">' + esc(row.lokasi) + '</td>' +
-        '<td data-label="Jadwal">' + esc(row.jadwal) + '</td>' +
-        '<td data-label="Status" class="' + kelas + '">' + esc(st) + '</td>' +
-        '<td data-label="Link">' + link + '</td>' +
-      '</tr>'
-    );
-  }
-  document.getElementById('tabelData').innerHTML = html.join('');
-
-  var btn = document.getElementById('btnMore');
-  if (rows.length > batasTampil) {
-    btn.style.display = 'inline-block';
-    btn.innerText = 'Tampilkan lebih banyak (' + batasTampil + ' dari ' + rows.length + ')';
-  } else {
-    btn.style.display = 'none';
-  }
-}
 
 document.getElementById('btnMore').onclick = function () {
   batasTampil += 50;
@@ -456,6 +471,117 @@ document.querySelectorAll('th[data-key]').forEach(function (th) {
   });
 });
 
+// ================== RENDER DUA TABEL + PENCARIAN ==================
+var batasBelum = 50, batasSudah = 50, kataCari = '';
+
+function cocokPencarian(r) {
+  if (!kataCari) return true;
+  var teks = (r.judul + ' ' + r.lokasi + ' ' + r.jadwal + ' ' + r.status).toLowerCase();
+  var kata = kataCari.split(/\s+/);
+  for (var i = 0; i < kata.length; i++) {
+    if (teks.indexOf(kata[i]) === -1) return false;
+  }
+  return true;
+}
+
+function barisBelumHtml(r) {
+  var st = String(r.status || '');
+  var kelas = st.indexOf('Error') === 0 ? 'status-error' : 'status-pending';
+  return '<tr>' +
+    '<td data-label="Judul">' + esc(r.judul) + '</td>' +
+    '<td data-label="Lokasi">' + esc(r.lokasi) + '</td>' +
+    '<td data-label="Jadwal">' + esc(r.jadwal) + '</td>' +
+    '<td data-label="Status" class="' + kelas + '">' + esc(st) + '</td>' +
+  '</tr>';
+}
+
+function barisSudahHtml(r) {
+  var link = r.link
+    ? '<a class="btnLink" href="' + esc(r.link) + '" target="_blank" rel="noopener">🔗 Buka Postingan</a>'
+    : '<span style="color:#95a5a6;">Link belum terisi</span>';
+  return '<tr>' +
+    '<td data-label="Judul">' + esc(r.judul) + '</td>' +
+    '<td data-label="Lokasi">' + esc(r.lokasi) + '</td>' +
+    '<td data-label="Waktu Posting">' + esc(r.jadwal) + '</td>' +
+    '<td data-label="Status" class="status-posted">✔ Posted</td>' +
+    '<td data-label="Link">' + link + '</td>' +
+  '</tr>';
+}
+
+function renderTabel(rows) {
+  rowsSaatIni = rows;
+
+  var belum = [], sudah = [], totalBelum = 0, totalSudah = 0;
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
+    if (r.sudahPosted) totalSudah++; else totalBelum++;
+    if (!cocokPencarian(r)) continue;
+    if (r.sudahPosted) sudah.push(r); else belum.push(r);
+  }
+
+  // Tabel antrean
+  var h1 = belum.slice(0, batasBelum).map(barisBelumHtml).join('');
+  document.getElementById('tabelData').innerHTML =
+    h1 || '<tr><td colspan="4" class="kosong">Tidak ada data.</td></tr>';
+
+  // Tabel sudah diposting
+  var h2 = sudah.slice(0, batasSudah).map(barisSudahHtml).join('');
+  document.getElementById('tabelPosted').innerHTML =
+    h2 || '<tr><td colspan="5" class="kosong">Tidak ada data.</td></tr>';
+
+  // Jumlah di judul tabel
+  document.getElementById('jmlBelum').innerText = kataCari ? belum.length + ' dari ' + totalBelum : totalBelum;
+  document.getElementById('jmlSudah').innerText = kataCari ? sudah.length + ' dari ' + totalSudah : totalSudah;
+
+  // Info pencarian
+  document.getElementById('infoCari').innerText = kataCari
+    ? 'Hasil pencarian "' + kataCari + '": ' + (belum.length + sudah.length) + ' data ditemukan'
+    : 'Total ' + rows.length + ' data';
+
+  // Tombol "tampilkan lebih banyak"
+  var b1 = document.getElementById('btnMore');
+  if (belum.length > batasBelum) {
+    b1.style.display = 'inline-block';
+    b1.innerText = 'Tampilkan lebih banyak (' + batasBelum + ' dari ' + belum.length + ')';
+  } else b1.style.display = 'none';
+
+  var b2 = document.getElementById('btnMoreSudah');
+  if (sudah.length > batasSudah) {
+    b2.style.display = 'inline-block';
+    b2.innerText = 'Tampilkan lebih banyak (' + batasSudah + ' dari ' + sudah.length + ')';
+  } else b2.style.display = 'none';
+}
+
+document.getElementById('btnMore').onclick = function () {
+  batasBelum += 50; renderTabel(rowsSaatIni);
+};
+document.getElementById('btnMoreSudah').onclick = function () {
+  batasSudah += 50; renderTabel(rowsSaatIni);
+};
+
+// Kolom pencarian (tunggu 250 ms setelah berhenti mengetik)
+var timerCari = null;
+var inputCari = document.getElementById('inputCari');
+var btnHapusCari = document.getElementById('btnHapusCari');
+
+inputCari.addEventListener('input', function () {
+  btnHapusCari.style.display = inputCari.value ? 'block' : 'none';
+  clearTimeout(timerCari);
+  timerCari = setTimeout(function () {
+    kataCari = inputCari.value.trim().toLowerCase();
+    batasBelum = 50; batasSudah = 50;
+    renderTabel(rowsSaatIni);
+  }, 250);
+});
+btnHapusCari.onclick = function () {
+  inputCari.value = '';
+  btnHapusCari.style.display = 'none';
+  kataCari = ''; batasBelum = 50; batasSudah = 50;
+  renderTabel(rowsSaatIni);
+  inputCari.focus();
+};
+
+// ================== SORTING TABEL ==================
 function urutkanData(key, toggleArah) {
   if (toggleArah) {
     sortArahAsc = (sortKeyAktif === key) ? !sortArahAsc : true;
@@ -463,22 +589,26 @@ function urutkanData(key, toggleArah) {
   sortKeyAktif = key;
 
   var hasil = dataTerakhir.slice().sort(function (a, b) {
-    var valA = (a[key] || '').toString().toLowerCase();
-    var valB = (b[key] || '').toString().toLowerCase();
+    var valA, valB;
+    if (key === 'jadwal') {
+      valA = a.timestamp === null ? Infinity : a.timestamp;
+      valB = b.timestamp === null ? Infinity : b.timestamp;
+    } else {
+      valA = (a[key] || '').toString().toLowerCase();
+      valB = (b[key] || '').toString().toLowerCase();
+    }
     if (valA < valB) return sortArahAsc ? -1 : 1;
     if (valA > valB) return sortArahAsc ? 1 : -1;
     return 0;
   });
 
-  document.querySelectorAll('th[data-key] .arrow').forEach(function (span) {
-    span.innerText = '';
+  document.querySelectorAll('th[data-key] .arrow').forEach(function (s) { s.innerText = ''; });
+  document.querySelectorAll('th[data-key="' + key + '"] .arrow').forEach(function (s) {
+    s.innerText = sortArahAsc ? '▲' : '▼';
   });
-  var thAktif = document.querySelector('th[data-key="' + key + '"] .arrow');
-  if (thAktif) thAktif.innerText = sortArahAsc ? '▲' : '▼';
 
   renderTabel(hasil);
 }
-
 // ================== TOMBOL SCROLL ==================
 var btnUp = document.getElementById('btnScrollUp');
 var btnDown = document.getElementById('btnScrollDown');
